@@ -1,13 +1,12 @@
 import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
+import showdown from "npm:showdown";
 async function fetchText(url) { return await (await fetch(url)).text() }
-// library loading
-Function(await fetchText("https://unpkg.com/showdown@2.1.0/dist/showdown.min.js")).call(globalThis);
 // showdown requires window.document support
-globalThis.window.document = new DOMParser().parseFromString("", "text/html");
+const HTMLParser = new DOMParser().parseFromString("", "text/html");
 
 if (import.meta.main) {
     // load input
-    const waybackPrefix = "http://web.archive.org/web/20220809180003/";
+    const waybackPrefix = "http://web.archive.org/web/20231116072658/";
     //const rawHtml = await fetchText("https://hello.vrchat.com/legal");
     const rawHtml = await fetchText(`${waybackPrefix}https://hello.vrchat.com/legal`);
     //const rawHtml = await Deno.readTextFile("tos.new.html");
@@ -30,9 +29,16 @@ export function formatHTML2Markdown(rawHtml) {
     bodyDomElement.querySelectorAll("span").forEach(e => e.replaceWith(...e.childNodes))
     //const contents = bodyDomElement.querySelectorAll(":scope > div > div > *")
     const contents = bodyDomElement.querySelectorAll(".sqs-block-content > *")
-    const bodyHTML = Array.from(contents).map((k) => k.outerHTML).join("");
+    for (let content of contents) {
+        for (const attr of ["style", "class"]) {
+            for (const withStyle of content.querySelectorAll(`*[${attr}]`)) {
+                withStyle.removeAttribute(attr);
+            }
+        }
+    }
+    const bodyHTML = Array.from(contents).map((k) => k.innerHTML).join("");
 
-    const rawMarkdown = new showdown.Converter().makeMarkdown(bodyHTML)
+    let rawMarkdown = new showdown.Converter().makeMarkdown(bodyHTML, HTMLParser)
         .replaceAll(/https?:\/\/web.archive.org\/web\/\d+\//g, "") // wayback prefix
         .replaceAll(/\/web\/20220809180027\/https:\/\/hello.vrchat.com/g, "") // another format of prefix
         .replaceAll("<br>", "");
@@ -41,6 +47,7 @@ export function formatHTML2Markdown(rawHtml) {
     //console.log("=============================================");
 
     const markdown = rawMarkdown
+            .replaceAll(/<(\/?(div|p))>/g, "\n<$1>\n")
             .replaceAll(/(?<!https)(?<!http)(?<!mailto)(?<!Notice)([;:])( and| or)? *(?=.)/g, "$1\n  ")
             .replaceAll(/(?<!Inc)(?<!\d)(?<!\\)(?<!\n.)\.(\**)( +)/g, ".$1\n");
 
