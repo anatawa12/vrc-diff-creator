@@ -79,8 +79,8 @@ export function makeTosDiff(oldFile, newFile) {
                     }
                 }
 
-                result += `-${oldResult}\n`;
-                result += `+${newResult}\n`;
+                result += `${oldResult}\n`;
+                result += `${newResult}\n`;
                 break;
             default:
                 throw new Error();
