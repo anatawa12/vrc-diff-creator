@@ -8,6 +8,8 @@ function preProcess(input) {
     // General changes are applied at first
     return input
             .replaceAll("TOU", "TOS")  // Terms of Use -> Terms of Service
+            .replaceAll("This TOS", "These Terms")
+            .replaceAll("this TOS", "these Terms")
             .replaceAll(/\[(\s+)/g, "$1[")  // fix link style
             .replaceAll("\u00A0", " ")  // No Break Space
             .split(/\r|\n|\r\n/g)
@@ -27,6 +29,8 @@ export function makeTosDiff(oldFile, newFile) {
     let result = "";
     result += "The following changes are not included in this patch because they're small & generally found:\n";
     result += "  - 'TOS' <-> 'TOU'\n";
+    result += "  - 'This TOS' <-> 'Those Terms'\n";
+    result += "\n"
     for (const diff of diffList) {
         switch (diff.type) {
             case '@':
